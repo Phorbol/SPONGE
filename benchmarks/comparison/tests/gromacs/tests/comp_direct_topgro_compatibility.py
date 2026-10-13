@@ -11,6 +11,7 @@ from comp_direct_topgro_section_integrity import (
     _extract_mdout_term,
     _minimal_topology,
     _run_topology,
+    _toml_string,
 )
 
 
@@ -19,6 +20,8 @@ from comp_direct_topgro_section_integrity import (
     [
         "A 12.0 0.0 A 0.30 0.4184",
         "A 6 12.0 0.0 A 0.30 0.4184",
+        "A +6 12.0 0.0 A 0.30 0.4184",
+        "A -1 12.0 0.0 A 0.30 0.4184",
         "A BA 12.0 0.0 A 0.30 0.4184",
         "A BA 6 12.0 0.0 A 0.30 0.4184",
     ],
@@ -105,6 +108,19 @@ def test_unresolved_or_unsupported_constraint_fails(tmp_path, options):
     assert "spongeErrorBadFileFormat" in result.stdout + result.stderr
 
 
+@pytest.mark.parametrize("atomic_number", ["+6", "-1"])
+def test_signed_atomic_numbers_preserve_constraint_type_lookup(
+    tmp_path, atomic_number
+):
+    topology = _constraint_topology().replace(
+        "A 12.0", f"A {atomic_number} 12.0"
+    )
+    result, _ = _run_topology(
+        tmp_path, topology, atoms=(("A", 0.0), ("B", 0.15))
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 @pytest.mark.parametrize(
     "options,expected",
     [
@@ -126,9 +142,7 @@ def test_constraint_distance_is_applied(tmp_path, options, expected):
     text = mdin.read_text().replace("step_limit = 0", "step_limit = 1")
     text = text.replace("dt = 0", "dt = 0.00001")
     text += '\nconstrain_mode = "SHAKE"\nwrite_trajectory_interval = 1\n'
-    text += (
-        f'output_h5_trajectory_path = "{tmp_path / "trajectory.spg.h5md"}"\n'
-    )
+    text += f"output_h5_trajectory_path = {_toml_string(tmp_path / 'trajectory.spg.h5md')}\n"
     mdin.write_text(text)
     result = subprocess.run(
         [os.environ.get("SPONGE_BIN", "SPONGE"), "-mdin", str(mdin)],
@@ -143,9 +157,12 @@ def test_constraint_distance_is_applied(tmp_path, options, expected):
     assert np.linalg.norm(xyz[1] - xyz[0]) == pytest.approx(expected, abs=0.001)
 
 
-@pytest.mark.parametrize("optional", ["BA", "BA 6"])
+@pytest.mark.parametrize(
+    "optional,bonded_type",
+    [("BA", "BA"), ("BA 6", "BA"), ("+6", "A"), ("-1", "A"), ("+6BA", "+6BA")],
+)
 def test_bonded_aliases_apply_to_all_bonded_parameter_tables(
-    tmp_path, optional
+    tmp_path, optional, bonded_type
 ):
     topology = """
 [ defaults ]
@@ -180,7 +197,7 @@ FIVE 3
 bonded aliases
 [ molecules ]
 FIVE 1
-""".format(optional=optional)
+""".replace("BA", bonded_type).format(optional=optional)
     atoms = (
         ("A1", (0.0, 0.1, 0.0)),
         ("A2", (0.0, 0.0, 0.0)),
@@ -192,7 +209,7 @@ FIVE 1
         tmp_path / "aliased", topology, atoms=atoms
     )
     reference = topology.replace("A " + optional + " 12.0", "A 6 12.0").replace(
-        "BA", "A"
+        bonded_type, "A"
     )
     reference_result, reference_mdout = _run_topology(
         tmp_path / "reference", reference, atoms=atoms

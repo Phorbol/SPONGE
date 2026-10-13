@@ -819,9 +819,16 @@ static Gromacs_Topology Gromacs_Parse_Topology(CONTROLLER* controller)
             atom_type.name = tokens[0];
             atom_type.bonded_type = atom_type.name;
             // The two optional fields are bonded type and atomic number.
-            if (tokens.size() == 8 ||
-                (tokens.size() == 7 && tokens[1].find_first_not_of(
-                                           "0123456789") != std::string::npos))
+            // An atomic number may have a leading sign, but the entire
+            // remainder must be digits (numeric prefixes can be aliases).
+            const auto& optional_field = tokens[1];
+            const size_t digits_begin =
+                (optional_field[0] == '+' || optional_field[0] == '-') ? 1 : 0;
+            const bool is_atomic_number =
+                optional_field.size() > digits_begin &&
+                optional_field.find_first_not_of("0123456789", digits_begin) ==
+                    std::string::npos;
+            if (tokens.size() == 8 || (tokens.size() == 7 && !is_atomic_number))
             {
                 atom_type.bonded_type = tokens[1];
             }
