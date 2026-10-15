@@ -25,6 +25,7 @@ directory = "."
 
 [tool.py-build-cmake.sdist]
 include = [
+        "LOCAL_MP.md",
         "CMakeLists.txt",
         "src/*",
         "include/*",
