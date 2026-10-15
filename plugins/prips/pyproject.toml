@@ -28,6 +28,9 @@ include = [
         "CMakeLists.txt",
         "src/*",
         "include/*",
+        "prips/*.py",
+        "prips/*.pyi",
+        "prips/local_mp/*.py",
         "THIRD_PARTY_NOTICES",
         "LICENSE-DLPACK",
 ]
