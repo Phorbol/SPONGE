@@ -831,13 +831,17 @@ void Main_Iteration()
     }
     else
     {
-        md_info.rerun.Iteration();
-        if (md_info.rerun.need_box_update)
+        const bool box_changed = md_info.rerun.Iteration();
+        // A large-box rebuild gathers DD state back into the global arrays.
+        // Populate the owned slots first so that gather preserves the new
+        // frame.
+        md_info.Crd_Vel_Device_to_dd(dd.crd, dd.vel, dd.atom_local_label,
+                                     dd.atom_local_id, main_stream);
+        // Iteration only prepares g when the trajectory box actually changes.
+        if (md_info.rerun.need_box_update && box_changed)
         {
             Main_Box_Change(md_info.rerun.g, 1, 0, 0);
         }
-        md_info.Crd_Vel_Device_to_dd(dd.crd, dd.vel, dd.atom_local_label,
-                                     dd.atom_local_id, main_stream);
     }
 
     int refresh_halo = (md_info.sys.steps + 1) % dd.update_interval == 0 ||
