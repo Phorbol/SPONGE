@@ -29,7 +29,6 @@ from fixture_model import (
 RTOL = 1e-5
 ATOL = 1e-5
 PRESSURE_CONVERSION = 6.946827162543585e4
-EV_TO_KCAL_MOL = 23.06054783061903
 
 
 def _close(actual, expected, *, rtol=RTOL, atol=ATOL):

@@ -30,14 +30,14 @@ SKIN = 0.4
 
 
 class ToyAdapter(LocalMPModelAdapter):
-    def __init__(self, rank=None, log_dir=None, energy_scale=1.0):
+    def __init__(self, rank=None, log_dir=None):
         self._capabilities = LocalMPCapabilities(
             cutoff=CUTOFF,
             skin=SKIN,
             interaction_depth=2,
             exchange_schedule=((0, 1), (1, 1)),
             length_to_angstrom=1.0,
-            energy_to_kcal_mol=energy_scale,
+            energy_to_kcal_mol=1.0,
             feature_dtype=torch.float32,
         )
         self.rank = rank

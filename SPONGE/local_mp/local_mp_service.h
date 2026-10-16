@@ -26,8 +26,6 @@ class LOCAL_MP_SERVICE
     void Invalidate_Neighbor_View();
     void Publish_Neighbor_View(const MLIP_NEIGHBOR_LIST& graph, int owned_count,
                                int ghost_count);
-    int Update_Ghost_Tensor(float* rows, int row_count, int width);
-    int Accumulate_Ghost_Tensor(float* rows, int row_count, int width);
     // Called after force work completes, before controller/device shutdown.
     void Clear();
 #ifdef USE_CUDA

@@ -67,7 +67,7 @@ extern "C"
     typedef struct SPONGE_LOCAL_MP_API_V1
     {
         uint32_t api_version;
-        const SPONGE_PLUGIN_API* v2;
+        const SPONGE_PLUGIN_API* prips_api;
         int (*register_mlip_capabilities)(double cutoff_angstrom,
                                           double skin_angstrom,
                                           int interaction_depth,

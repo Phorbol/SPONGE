@@ -320,7 +320,7 @@ const SPONGE_LOCAL_MP_API_V1* BuildLocalMPApi()
 {
     g_local_mp_api = {};
     g_local_mp_api.api_version = SPONGE_LOCAL_MP_API_VERSION;
-    g_local_mp_api.v2 = BuildPripsApi();
+    g_local_mp_api.prips_api = BuildPripsApi();
     g_local_mp_api.register_mlip_capabilities = PluginRegisterMlipCapabilities;
     g_local_mp_api.get_pp_rank = PluginGetPPRank;
     g_local_mp_api.get_pp_size = PluginGetPPSize;

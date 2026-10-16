@@ -60,12 +60,11 @@ All other input angles use the original formula. No tilt tolerance is applied
 here, and this does not extend local-MP support to triclinic cells or change
 the initialization normalization rules.
 
-The targeted regression is a three-frame replay with distinct coordinates and
-velocities: fixed/small/large box changes followed by an unchanged box, on one
-and two particle ranks. It checks the consumed frame, cell and model outputs;
-separate angle probes check exact orthogonal construction and unchanged
-nonorthogonal results. This is replay validation, not a long-trajectory MD or
-ensemble qualification.
+When changing this ordering, verify that the force calculation consumes the
+loaded frame across fixed, small and large box changes, including a following
+unchanged box on one and multiple particle ranks. Check exact orthogonal cell
+construction separately from nonorthogonal geometry. These replay checks do
+not establish long-trajectory MD or ensemble correctness.
 
 ## Output events
 

@@ -14,7 +14,6 @@ class DIRECT_HALO_PLAN
 {
    public:
     bool active = false;
-    uint64_t epoch = 0;
     void Build(DOMAIN_INFORMATION& dd, CONTROLLER* controller,
                MD_INFORMATION* md, float radius, bool preserve_classic,
                float classic_radius);

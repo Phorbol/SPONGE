@@ -17,7 +17,7 @@ from fixture_model import SEED_FORCE
 
 
 def run_case(args, trajectory):
-    out = args.work_root / f"r{args.ranks}-trajectory{trajectory}"
+    out = args.work_root / f"r{args.ranks}-trajectory{trajectory}-{os.getpid()}"
     # Intentionally interleave domain ownership in global atom order.
     positions = [(5.2, 1, 1), (0.4, 1, 1), (9.6, 1, 1), (4.8, 1, 1)]
     types = [6, 8, 6, 8]

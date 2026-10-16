@@ -95,9 +95,8 @@ __global__ void Group_Bounds(int groups, const int* starts, const int* lengths,
 }
 // Query current owned-only buckets, marking each target atom once across all
 // candidate groups from a given source. Replies never become resident ghosts.
-__global__ void Query_Buckets(int grids, int nx, int ny, int nz, float spacing,
-                              int capacity, const int* counts, const int* atoms,
-                              const VECTOR* crd, int queries,
+__global__ void Query_Buckets(int grids, int capacity, const int* counts,
+                              const int* atoms, const VECTOR* crd, int queries,
                               const Bounds* bounds, VECTOR box, float radius,
                               int* selected)
 {
@@ -275,8 +274,7 @@ void DIRECT_HALO_PLAN::Build(DOMAIN_INFORMATION& dd, CONTROLLER* controller,
     const VECTOR box = md->sys.box_length;
     if (!(radius > 0) || !std::isfinite(radius))
         throw std::invalid_argument("invalid direct halo radius");
-    // Existing local-MP unique-image and orthogonal-cell guards remain
-    // upstream.
+    // Direct halo selection assumes orthogonal cell geometry.
     Device<Bounds> db(dd.res_numbers);
     if (dd.res_numbers)
         Launch_Device_Kernel(Group_Bounds, (dd.res_numbers + 255) / 256, 256, 0,
@@ -369,9 +367,9 @@ void DIRECT_HALO_PLAN::Build(DOMAIN_INFORMATION& dd, CONTROLLER* controller,
             if (!incoming.empty())
                 Launch_Device_Kernel(
                     Query_Buckets, (bins.grid_numbers + 255) / 256, 256, 0,
-                    NULL, bins.grid_numbers, nx, ny, nz, radius, capacity,
-                    bins.d_grid_atom_numbers, bins.d_grid_atoms, dd.crd,
-                    int(incoming.size()), query.p, box, radius, marked.p);
+                    NULL, bins.grid_numbers, capacity, bins.d_grid_atom_numbers,
+                    bins.d_grid_atoms, dd.crd, int(incoming.size()), query.p,
+                    box, radius, marked.p);
             deviceMemset(count.p, 0, sizeof(int));
             if (owned_ && !incoming.empty())
                 Launch_Device_Kernel(Pack_Replies, (owned_ + 255) / 256, 256, 0,
@@ -536,7 +534,6 @@ void DIRECT_HALO_PLAN::Build(DOMAIN_INFORMATION& dd, CONTROLLER* controller,
         active = false;
         throw;
     }
-    ++epoch;
 #endif
 }
 

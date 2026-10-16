@@ -43,6 +43,7 @@ cmake -S . -B build-local-mp-tests -G Ninja \
 cmake --build build-local-mp-tests --parallel 4
 ctest --test-dir build-local-mp-tests -N -L local-mp
 ctest --test-dir build-local-mp-tests --output-on-failure -L local-mp
+ctest --test-dir build-local-mp-tests --output-on-failure -R '^test_initial_coordinate$'
 ```
 
 Test-enabled SPONGE includes HDF5 fault-injection instrumentation; use the

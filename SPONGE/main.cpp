@@ -68,7 +68,7 @@ bool adaptive_mlip_halo = false;
 double mlip_halo_displacement_limit = 0.0;
 DD_HALO_REFERENCE mlip_halo_reference;
 
-// Conservative cross-stream handoff until the plugin ABI carries events.
+// Join native and plugin work before borrowed MD or graph storage is reused.
 void Fence_Mlip_Device()
 {
 #ifdef USE_GPU

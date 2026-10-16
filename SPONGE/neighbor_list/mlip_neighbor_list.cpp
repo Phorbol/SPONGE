@@ -21,7 +21,6 @@
 namespace
 {
 constexpr int kInitialBucketCapacity = 2;
-constexpr int kInitialCsrCapacity = 16;
 
 inline void Require_Allocation(bool allocated, const char* what)
 {
@@ -483,13 +482,11 @@ void MLIP_NEIGHBOR_LIST::Initial(CONTROLLER* controller, int max_local_atoms,
             "MLIP cutoff must be finite and positive and skin finite and "
             "nonnegative");
     Clear();
-    cutoff_ = cutoff;
     skin_ = skin;
     graph_radius_ = MlipGeometry::Radius(cutoff, skin);
     grid_length_ = graph_radius_ * 0.5f;
     if (!std::isfinite(grid_length_) || grid_length_ <= 0.0f)
         throw std::invalid_argument("MLIP graph radius is not representable");
-    max_local_atoms_ = max_local_atoms;
     Require_Allocation(
         Device_Malloc_Safely((void**)&d_owned_overflow_, sizeof(int)),
         "owned overflow");
@@ -502,7 +499,7 @@ void MLIP_NEIGHBOR_LIST::Initial(CONTROLLER* controller, int max_local_atoms,
     Require_Allocation(
         Device_Malloc_Safely((void**)&d_rebuild_needed_, sizeof(int)),
         "rebuild flag");
-    Ensure_Reference_Capacity(max_local_atoms_);
+    Ensure_Reference_Capacity(max_local_atoms);
     initialized_ = true;
 }
 
@@ -824,8 +821,8 @@ void MLIP_NEIGHBOR_LIST::Clear()
     Free_Single_Device_Pointer((void**)&d_rebuild_needed_);
     initialized_ = false;
     has_graph_ = false;
-    cutoff_ = skin_ = graph_radius_ = grid_length_ = 0.0f;
-    max_local_atoms_ = owned_count_ = ghost_count_ = edge_count_ = 0;
+    skin_ = graph_radius_ = grid_length_ = 0.0f;
+    owned_count_ = ghost_count_ = edge_count_ = 0;
     row_capacity_ = edge_capacity_ = staging_row_capacity_ =
         staging_edge_capacity_ = reference_capacity_ = row_scratch_capacity_ =
             0;

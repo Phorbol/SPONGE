@@ -42,11 +42,9 @@ class MLIP_NEIGHBOR_LIST
     void Ensure_Edge_Capacity(int edge_count);
 
     bool initialized_ = false;
-    double cutoff_ = 0.0f;
     double skin_ = 0.0f;
     float graph_radius_ = 0.0f;
     float grid_length_ = 0.0f;
-    int max_local_atoms_ = 0;
     int owned_count_ = 0;
     int ghost_count_ = 0;
     int edge_count_ = 0;

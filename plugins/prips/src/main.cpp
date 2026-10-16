@@ -27,7 +27,6 @@
 static const SPONGE_PLUGIN_API* sponge_api = NULL;
 static const SPONGE_LOCAL_MP_API_V1* sponge_local_mp = NULL;
 static int is_initialized = 0;
-static bool execution_path_logged = false;
 static std::string py_script_path;
 static DLDeviceType dlpack_device_type = kDLCPU;
 static int dlpack_device_index = 0;
@@ -786,7 +785,7 @@ static PyObject* LocalMPSubmitOwnedOutputs(PyObject*, PyObject* args)
         (virial_tensor != Py_None &&
          !virial.acquire(virial_tensor, producer_stream)))
         return NULL;
-    const int owned = sponge_local_mp->v2->get_local_atom_numbers();
+    const int owned = sponge_local_mp->prips_api->get_local_atom_numbers();
     if (!forces.valid(2, owned, 3, kDLFloat, 32) ||
         (energy_tensor != Py_None && !energy.valid(1, 1, 0, kDLFloat, 32)) ||
         (virial_tensor != Py_None && !virial.valid(2, 3, 3, kDLFloat, 32)))
@@ -843,7 +842,7 @@ static PyObject* LocalMPAssembleEdgeGradients(PyObject*, PyObject* args)
          !virial.acquire(virial_tensor, producer_stream)))
         return NULL;
     const int64_t count = ids.view->ndim == 1 ? ids.view->shape[0] : -1;
-    const int owned = sponge_local_mp->v2->get_local_atom_numbers();
+    const int owned = sponge_local_mp->prips_api->get_local_atom_numbers();
     if (count < 0 || count > INT_MAX || !ids.valid(1, count, 0, kDLInt, 64) ||
         !gradients.valid(2, count, 3, kDLFloat, 32) ||
         !forces.valid(2, owned, 3, kDLFloat, 32) ||
@@ -1313,14 +1312,15 @@ PLUGIN_API void Initial_Local_MP_V1(const SPONGE_LOCAL_MP_API_V1* api)
 {
     if (runtime_error_latched) return;
     if (api == NULL || api->api_version != SPONGE_LOCAL_MP_API_VERSION ||
-        api->v2 == NULL || api->v2->api_version != SPONGE_PRIPS_API_VERSION ||
+        api->prips_api == NULL ||
+        api->prips_api->api_version != SPONGE_PRIPS_API_VERSION ||
         api->register_mlip_capabilities == NULL || api->get_pp_rank == NULL ||
         api->get_pp_size == NULL || api->get_device_index == NULL ||
         api->get_domain_epoch == NULL || api->get_need_potential == NULL ||
         api->get_need_pressure == NULL || api->get_cell == NULL ||
         api->get_mlip_neighbor_epoch == NULL ||
         api->get_mlip_neighbor_view == NULL ||
-        (api->v2->device_type == kDLCUDA &&
+        (api->prips_api->device_type == kDLCUDA &&
          (api->exchange_on_stream == NULL ||
           api->submit_owned_outputs == NULL)))
     {
@@ -1330,7 +1330,7 @@ PLUGIN_API void Initial_Local_MP_V1(const SPONGE_LOCAL_MP_API_V1* api)
         return;
     }
     sponge_local_mp = api;
-    Initial_Stable(api->v2);
+    Initial_Stable(api->prips_api);
 }
 
 PLUGIN_API void Initial(void* md, void* ctrl, void* nl, void* cv, void* cv_map,
@@ -1410,13 +1410,6 @@ if hasattr(Sponge, "_local_mp_driver"):
 PLUGIN_API void Calculate_Force()
 {
     if (!is_initialized || runtime_error_latched) return;
-    if (!execution_path_logged)
-    {
-        controller_printf(
-            "PRIPS execution_path=%s\n",
-            sponge_local_mp != NULL ? "scoped_sync_exchange_v1" : "prips_v2");
-        execution_path_logged = true;
-    }
     RunPythonCode("Calculate_Force", R"XYJ(
 if hasattr(sponge_pyplugin, "Calculate_Force"):
     sponge_pyplugin.Calculate_Force()

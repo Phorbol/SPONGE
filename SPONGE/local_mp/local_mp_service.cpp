@@ -72,22 +72,6 @@ bool LOCAL_MP_SERVICE::Tensor_Shape_Valid(float* local_rows, int row_count,
            row_count == domain_->atom_numbers + domain_->ghost_numbers;
 }
 
-int LOCAL_MP_SERVICE::Update_Ghost_Tensor(float* local_rows, int row_count,
-                                          int feature_width)
-{
-    if (!Tensor_Shape_Valid(local_rows, row_count, feature_width)) return 1;
-    domain_->Update_Ghost_Tensor(controller_, local_rows, feature_width);
-    return 0;
-}
-
-int LOCAL_MP_SERVICE::Accumulate_Ghost_Tensor(float* local_rows, int row_count,
-                                              int feature_width)
-{
-    if (!Tensor_Shape_Valid(local_rows, row_count, feature_width)) return 1;
-    domain_->Accumulate_Ghost_Tensor(controller_, local_rows, feature_width);
-    return 0;
-}
-
 uint64_t LOCAL_MP_SERVICE::Neighbor_Epoch() const
 {
     if (domain_ == nullptr || neighbor_domain_epoch_ != domain_epoch_ ||
