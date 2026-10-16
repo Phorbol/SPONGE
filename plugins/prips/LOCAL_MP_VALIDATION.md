@@ -25,7 +25,8 @@ not remove that limitation.
 Cross-node runtime execution, production-weight long trajectories, NPT,
 mixed classical/ML force qualification, general MPI portability and performance/
 scaling are not established by these recipes. Two-node fixture success does not
-establish arbitrary node-count scaling. MC barostat, long-range/iterative models
+establish arbitrary node-count scaling. MC barostat, an enabled ITS/SITS module,
+long-range/iterative models
 and nonorthogonal or nonperiodic cells are outside this interface's admitted
 scope. Record the commands, environment, results and limitations of each
 qualification run separately from this guide.

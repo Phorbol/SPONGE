@@ -1202,6 +1202,16 @@ void Main_Process_Management()
                                       "unsupported in the short-range runtime");
     }
 
+    // SITS consumes energy before the world reduction and does not yet
+    // include the separate model virial in its enhancement path.
+    if (sits.is_initialized && plugin.Has_Local_MP_Provider())
+    {
+        controller.Throw_SPONGE_Error(
+            spongeErrorConflictingCommand, "Main_Process_Management",
+            "Local-MP MLIP with ITS/SITS is unsupported: enhanced energy "
+            "and virial integration is not implemented");
+    }
+
     Initialize_Mlip_Halo_Refresh();
 
     // Callback declarations and built-in consumers are finalized now. Keep

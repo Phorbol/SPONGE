@@ -22,7 +22,11 @@ The current hidden-feature exchange operates on owned atoms; models requiring
 directed-edge hidden-state exchange need an additional protocol extension.
 The native edge-force assembly service does not supply that exchange.
 Long-range models and iterative services are refused. Local-MP with the MC
-barostat is refused at startup. Production-weight long MD, NPT, mixed classical/
+barostat is refused at startup. Enabling the SITS module together with local-MP
+is also refused before force evaluation: its enhanced-energy and virial paths
+are not integrated with the model outputs. This covers full-system ITS,
+selective SITS and all modes of that module, including observation, empirical,
+AMD and GaMD. Production-weight long MD, NPT, mixed classical/
 ML force qualification and performance/scaling are not established by the
 included tests.
 
