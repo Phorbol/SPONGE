@@ -51,6 +51,22 @@ prepares the deformation matrix `g` only in that case. The caller must use that 
 would repeat the preceding deformation. The existing box-change detection
 thresholds are retained.
 
+`periodic_box_condition_information::Get_Cell()` converts lengths and angles
+for rerun geometry and H5 box output. When all three input angles are exactly
+90 degrees, it constructs a diagonal matrix directly: evaluating `cos(90°)`
+would otherwise introduce nonzero roundoff tilts and cause an explicitly
+orthogonal frame to fail the local-MP graph's strict orthogonal-cell check.
+All other input angles use the original formula. No tilt tolerance is applied
+here, and this does not extend local-MP support to triclinic cells or change
+the initialization normalization rules.
+
+The targeted regression is a three-frame replay with distinct coordinates and
+velocities: fixed/small/large box changes followed by an unchanged box, on one
+and two particle ranks. It checks the consumed frame, cell and model outputs;
+separate angle probes check exact orthogonal construction and unchanged
+nonorthogonal results. This is replay validation, not a long-trajectory MD or
+ensemble qualification.
+
 ## Output events
 
 `OutputSession` routes synchronous H5 and legacy output. It exposes schedule
