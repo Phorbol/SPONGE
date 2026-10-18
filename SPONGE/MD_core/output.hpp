@@ -1657,9 +1657,8 @@ void MD_INFORMATION::trajectory_output::Append_Frc_Traj_File(FILE* fp)
 {
     if (md_info->is_initialized && CONTROLLER::MPI_rank == 0)
     {
-        deviceMemcpy(md_info->force, md_info->frc,
-                     sizeof(VECTOR) * md_info->atom_numbers,
-                     deviceMemcpyDeviceToHost);
+        // Use the host snapshot prepared while DD indices still matched the
+        // force slots. Later box/domain updates may reuse device buffers.
         if (fp == NULL)  // 默认的frc输出位置
             fp = frc_traj;
         if (fp != NULL)

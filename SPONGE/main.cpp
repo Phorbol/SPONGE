@@ -96,6 +96,7 @@ int main(int argc, char* argv[])
         Main_Reduce_Energy();
         if (md_info.mode == md_info.RERUN)
         {
+            output_session.Prepare_Force_Output();
             // Publish this frame before loading the next one can replace its
             // coordinates or rebuild the domain buffers holding its forces.
             controller.Get_Time_Recorder("Iteration")->Stop();
@@ -648,6 +649,10 @@ void Main_Iteration()
                 boundary, md_info.need_pressure, md_info.sys.d_stress);
             hard_wall.Reflect(dd.atom_numbers, dd.crd, dd.vel);
         }
+        // Capture output force with its current global-to-local mapping.
+        // Pressure-driven box rebuilds and ownership exchange below may
+        // replace or reorder DD slots without preserving their force values.
+        output_session.Prepare_Force_Output();
         if (md_info.need_pressure && !mc_baro.is_initialized)
         {
             md_info.Get_pressure(&controller, dd.atom_numbers, dd.vel,

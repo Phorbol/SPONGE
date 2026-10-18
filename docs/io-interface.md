@@ -74,6 +74,26 @@ Simulation orchestration invokes events where their source data is ready:
 Streams retain their original `steps`/`steps + 1` and time conventions. Moving
 all module output to one end-of-step callback would change those semantics.
 
+Force capture is separate from writing. On a scheduled force-output step,
+`Prepare_Force_Output()` uses the existing DD force-gather routine to populate
+the host buffer while the current atom mapping is still valid. Ordinary MD
+calls it after integration, thermostat and constraint processing, before a
+pressure-driven box rebuild or ownership exchange can
+replace DD force storage or change the global-to-local map. Rerun calls it
+before publishing the current frame and loading the next one. Gathering after
+migration would associate old force slots with new atom identities.
+
+The standalone force writer and H5 trajectory writer consume this same host
+snapshot; neither gathers again. The capture condition uses the output plan
+shared by all ranks, rather than the H5 writer state owned by rank zero, so
+all particle ranks enter the same force collective even when the standalone
+and H5 schedules differ. No additional force buffer or force evaluation is
+needed. Coordinate/velocity writes, timestamps and schedules are unchanged;
+this does not make ordinary MD forces and post-integration coordinates refer
+to the same integrator stage. Changes here require checking migration on a
+force-output step, H5/standalone schedules, pressure-driven DD rebuilds and
+rerun frame alignment.
+
 `RestartOutputState` owns NHC, dynamic, SITS, MetaD, restraint and CV module
 payloads and replaces the positional restart export argument list. Capturing
 these payloads is gated by H5 restart output and MPI rank 0. Structural
