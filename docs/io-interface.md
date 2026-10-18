@@ -34,6 +34,25 @@ readers, structural restart loading in MD core and rerun's streaming reader
 retain their existing implementations; the context does not cache trajectory
 frames or claim to eliminate every H5 open in the program.
 
+## Rerun frame ownership and cell reconstruction
+
+Ordinary MD advances the domain-decomposed (DD) state; rerun loads a frame
+into the global arrays. Before a box rebuild can gather DD state back into
+those arrays, copy the loaded coordinates and velocities into the owned DD
+slots. Otherwise the previous frame can overwrite the newly read frame.
+
+Use the loaded cell directly for rerun, updating its inverse and domain/PM
+geometry, instead of reconstructing it through a strain and a time step.
+Only a newly loaded, changed box triggers this path. Explicit 90-degree
+angles construct an exact diagonal cell; other angles retain their geometric
+tilt. Ordinary pressure-driven strain updates remain unchanged.
+
+Reduce the evaluated frame's energy and publish its outputs before loading
+the next frame. Broadcast the frame counter when input frames are skipped,
+so every rank participates in the same output events. Rerun retains its last
+selected frame even when the corresponding ordinary-MD schedule would skip
+the final trajectory or restart write. Ordinary MD retains its output phase.
+
 ## Output events
 
 `OutputSession` routes synchronous H5 and legacy output. It exposes schedule

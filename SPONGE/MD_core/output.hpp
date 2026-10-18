@@ -2091,7 +2091,8 @@ bool MD_INFORMATION::trajectory_output::Check_Trajectory_Step()
            (md_info->sys.steps + 1) %
                    md_info->output.write_trajectory_interval ==
                0 &&
-           md_info->sys.steps != md_info->sys.step_limit;
+           (md_info->mode == md_info->RERUN ||
+            md_info->sys.steps != md_info->sys.step_limit);
 }
 
 bool MD_INFORMATION::trajectory_output::Check_Restart_Step()
@@ -2100,5 +2101,6 @@ bool MD_INFORMATION::trajectory_output::Check_Restart_Step()
            (md_info->sys.steps + 1) %
                    md_info->output.write_restart_file_interval ==
                0 &&
-           md_info->sys.steps != md_info->sys.step_limit;
+           (md_info->mode == md_info->RERUN ||
+            md_info->sys.steps != md_info->sys.step_limit);
 }
