@@ -15,9 +15,10 @@ CUDA backend); it does not create a `torch.distributed` process group. MPI must
 match the build and launch environment on every node.
 
 The current graph supports fully periodic orthogonal cells and at most 16 PP
-ranks. For multiple PP ranks, all three domain splits must be positive integers
-whose product equals the PP rank count. Native geometry/domain-size admission
-checks still apply; increasing rank count does not guarantee the system fits.
+ranks. Omit all three `DOM_DEC` splits to let SPONGE choose a domain partition.
+To override it, provide `split_nx`, `split_ny` and `split_nz` together as positive
+integers whose product equals the PP rank count. Native geometry/domain-size
+admission checks still apply; increasing rank count does not guarantee the system fits.
 The current hidden-feature exchange operates on owned atoms; models requiring
 directed-edge hidden-state exchange need an additional protocol extension.
 The native edge-force assembly service does not supply that exchange.
@@ -78,25 +79,39 @@ Add the native PRIPS library and the external Python entry file to the input
 ```toml
 plugin = "/absolute/path/to/SPONGE/build-prips/_prips.so"
 py = "/absolute/path/to/external/adapter_entry.py"
-device = "0"
-
-[DOM_DEC]
-split_nx = 1
-split_ny = 1
-split_nz = 1
+device = 0
 
 [PM]
 MPI_size = 0
 ```
 
-This fragment is for one PP rank and no PM rank; it is not a complete physical
-input. The external entry exports `local_mp_adapter` and `atom_types` as defined
-in the [adapter contract](LOCAL_MP.md). Keep classical force terms enabled only
-when the intended physical model includes them: model output is added to existing
-SPONGE forces and energies. Input `cutoff`/`skin` control the classical table;
-the adapter separately declares the model graph cutoff/skin and unit factors.
-A pure local-MP plugin may explicitly declare that it never uses the classical
-neighbor table, as described in the contract.
+This is an additional configuration fragment, not a complete physical input.
+For pure MLIP runs, explicitly set `PM.MPI_size = 0` so every rank evaluates the
+model; do not rely on the default PM allocation. Domain splits can be omitted
+for both single- and multiple-rank runs. Choose `device` according to the GPU
+visibility described below.
+
+`py` is a Python entry file, not a checkpoint path or model name. Alternatively,
+set `SPONGE_PRIPS_PY` when `py` is absent. Use absolute plugin paths or explicit
+relative paths such as `./build-prips/_prips.so`. Relative file paths are resolved
+from the process working directory, not the directory containing `mdin`. The entry exports `local_mp_adapter` and `atom_types` as defined in the
+[adapter contract](LOCAL_MP.md); no user-written `After_Initial` callback is
+needed. Checkpoint, head, units and type mapping are configured according to the
+external adapter's instructions, not a built-in SPONGE model configuration.
+
+`atom_types` must be a one-dimensional integer array with one entry per global
+atom, in exactly the coordinate/topology order. Obtain these labels from an
+explicit type or element assignment and map them to the model's supported
+species. Masses and classical LJ type IDs do not establish chemical elements.
+The protocol does not prescribe an atom-type file format; an external entry
+must load any such file into the array.
+
+Keep classical force terms enabled only when the intended physical model
+includes them: model output is added to existing SPONGE forces and energies.
+Input `cutoff`/`skin` control the classical table; the adapter separately
+declares the model graph cutoff/skin and unit factors. Declaring
+`uses_classic_neighbor_list = False` means the plugin does not consume that
+table; it does **not** disable classical force terms.
 
 From the run directory, launch the prepared input:
 
@@ -113,15 +128,16 @@ describes generic runtime regressions and external-adapter qualification.
 
 Each MPI rank needs its own GPU, including particle-mesh (PM) ranks: the device
 communicator spans all ranks although only PP ranks evaluate the model.
-`device` is a space-separated list with one visible CUDA device index per
-**global MPI rank**. It is not automatically a local-rank assignment.
+`device` accepts an integer applied to every rank or an integer array with one
+visible CUDA device index per **global MPI rank**. It does not automatically
+assign devices by local rank.
 
-For two ranks on one node where each process sees both GPUs, change `device`
-to `"0 1"`, change `split_nx` to 2, and launch with `mpiexec -n 2`. If the
-scheduler exposes only the assigned GPU to each process, use `device = "0 0"`.
-For one process on each of two nodes with one visible GPU per process, use
-`device = "0 0"` and the same `2 1 1` splits. In an existing two-node allocation,
-an Open MPI example is:
+For two ranks on one node where each process sees both GPUs, use
+`device = [0, 1]` and launch with `mpiexec -n 2`. If the scheduler exposes only
+each process's assigned GPU, use `device = 0`: each process selects its own
+visible device 0. This also works for one process on each of two nodes with
+one visible GPU per process. Leave domain splits unset for automatic
+partitioning. In an existing two-node allocation, an Open MPI example is:
 
 ```bash
 mpiexec -n 2 --map-by ppr:1:node \
@@ -133,8 +149,9 @@ to the same input/plugin/model files and Python environment; use a shared workin
 directory. Verify hostname, rank placement and GPU visibility in the allocated
 environment before choosing the device list. For four processes per node on
 two nodes, with all four local GPUs visible, the mapping is
-`"0 1 2 3 0 1 2 3"` **only if ranks 0–3 and 4–7 occupy the respective nodes**;
-an eight-PP run then needs splits such as `2 2 2` and a suitable system size.
+`device = [0, 1, 2, 3, 0, 1, 2, 3]` **only if ranks 0–3 and 4–7 occupy the
+respective nodes**. Automatic partitioning still requires a system large enough
+for the chosen PP rank count and model halo.
 
 ## Common setup errors
 

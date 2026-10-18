@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -196,6 +197,15 @@ def main() -> int:
         validate(schema, data, name)
         print(f"[PASS] {name}")
     repo_root = schema_path.parent.parent
+    # Read the published configuration itself so documentation cannot drift from
+    # a separate test fixture. These are mdin fragments, not complete MD inputs.
+    guide = repo_root / "plugins" / "prips" / "LOCAL_MP_USER_GUIDE.md"
+    for index, toml_text in enumerate(
+        re.findall(r"^```toml\n(.*?)^```", guide.read_text(), re.M | re.S), 1
+    ):
+        name = f"{guide.relative_to(repo_root)}:toml[{index}]"
+        validate(schema, tomllib.loads(toml_text), name)
+        print(f"[PASS] {name}")
     examples_dir = repo_root / "examples" / "h5_input"
     if examples_dir.exists():
         for example_path in sorted(examples_dir.glob("*.toml")):

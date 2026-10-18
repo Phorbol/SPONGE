@@ -720,6 +720,16 @@
       "description": "Force coordinate mapping by whole molecules during output.",
       "default": false
     },
+    "plugin": {
+      "type": "string",
+      "title": "Native Plugins",
+      "description": "Space-separated native plugin library paths. Use absolute paths or explicit relative paths such as ./build-prips/_prips.so."
+    },
+    "py": {
+      "type": "string",
+      "title": "PRIPS Python Entry",
+      "description": "Python entry file loaded by PRIPS, resolved from the process working directory. Overrides SPONGE_PRIPS_PY when supplied."
+    },
     "device": {
       "anyOf": [
         {
@@ -733,7 +743,7 @@
         }
       ],
       "title": "Device",
-      "description": "Compute device index or list.",
+      "description": "Visible compute device index shared by all ranks, or an index list in global MPI rank order.",
       "default": 0
     },
     "device_optimized_block": {
