@@ -1,0 +1,87 @@
+name: PR86 macOS thermostat comparison
+
+on:
+  push:
+    branches:
+      - diagnostics/pr86-macos-thermostat-20261125
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: macos-15
+    timeout-minutes: 35
+    env:
+      THERMOSTAT_BASE_SHA: a4411b5f781f795d9da5022c25a3aae65c2c774d
+      THERMOSTAT_HEAD_SHA: 7903df73a481c8a5dedcbc322b6e36e37864119e
+      THERMOSTAT_BASE_DIR: ${{ runner.temp }}/thermostat-base
+      THERMOSTAT_EVIDENCE: ${{ runner.temp }}/thermostat-evidence
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: 7903df73a481c8a5dedcbc322b6e36e37864119e
+      - uses: prefix-dev/setup-pixi@v0.9.4
+        with:
+          run-install: false
+      - name: Install one shared environment
+        run: pixi install -e dev-cpu
+      - name: Build fixed PR and base sources
+        run: |
+          mkdir -p "$THERMOSTAT_EVIDENCE"
+          git rev-parse HEAD > "$THERMOSTAT_EVIDENCE/head-sha.txt"
+          git fetch --no-tags https://github.com/SPONGEMM/SPONGE.git "$THERMOSTAT_BASE_SHA"
+          git worktree add --detach "$THERMOSTAT_BASE_DIR" "$THERMOSTAT_BASE_SHA"
+          git -C "$THERMOSTAT_BASE_DIR" rev-parse HEAD > "$THERMOSTAT_EVIDENCE/base-sha.txt"
+          uname -a > "$THERMOSTAT_EVIDENCE/platform.txt"
+          sysctl hw.model hw.ncpu >> "$THERMOSTAT_EVIDENCE/platform.txt"
+          pixi run -e dev-cpu configure
+          pixi run -e dev-cpu compile
+          pixi run -e dev-cpu bash -c '
+            set -euo pipefail
+            cmake -S "$THERMOSTAT_BASE_DIR" -B "$THERMOSTAT_BASE_DIR/build-ci" -G Ninja \
+              -DPARALLEL=none -DCMAKE_PREFIX_PATH="$CONDA_PREFIX" \
+              -DCMAKE_INSTALL_PREFIX="$CONDA_PREFIX"
+            cmake --build "$THERMOSTAT_BASE_DIR/build-ci" --target SPONGE --parallel 4
+          '
+      - name: Run each original test once
+        run: |
+          pixi run -e dev-cpu bash -c '
+            set -uo pipefail
+            head_dir="$PWD"
+            original_path="$PATH"
+            result=0
+            for variant in head base; do
+              if [ "$variant" = head ]; then
+                source_dir="$head_dir"
+                binary_dir="$head_dir/build-dev-cpu"
+              else
+                source_dir="$THERMOSTAT_BASE_DIR"
+                binary_dir="$THERMOSTAT_BASE_DIR/build-ci"
+              fi
+              export PATH="$binary_dir:$original_path"
+              cd "$source_dir"
+              command -v SPONGE > "$THERMOSTAT_EVIDENCE/$variant-binary.txt"
+              python -X utf8 -m pytest benchmarks/validation/thermostat/tests/test_thermostat.py \
+                -k middle_langevin -s --tb=short 2>&1 | tee "$THERMOSTAT_EVIDENCE/$variant.log"
+              status=${PIPESTATUS[0]}
+              printf "%s\n" "$status" > "$THERMOSTAT_EVIDENCE/$variant-exit.txt"
+              if [ "$status" -ne 0 ]; then result=1; fi
+            done
+            exit "$result"
+          '
+      - name: Preserve both results including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: thermostat-base-head
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/thermostat-evidence
+            pixi.lock
+            build-dev-cpu/CMakeCache.txt
+            build-dev-cpu/compile_commands.json
+            benchmarks/validation/thermostat/outputs
+            ${{ runner.temp }}/thermostat-base/build-ci/CMakeCache.txt
+            ${{ runner.temp }}/thermostat-base/build-ci/compile_commands.json
+            ${{ runner.temp }}/thermostat-base/benchmarks/validation/thermostat/outputs
