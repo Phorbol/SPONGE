@@ -15,9 +15,11 @@ jobs:
     env:
       THERMOSTAT_BASE_SHA: a4411b5f781f795d9da5022c25a3aae65c2c774d
       THERMOSTAT_HEAD_SHA: 7903df73a481c8a5dedcbc322b6e36e37864119e
-      THERMOSTAT_BASE_DIR: ${{ runner.temp }}/thermostat-base
-      THERMOSTAT_EVIDENCE: ${{ runner.temp }}/thermostat-evidence
     steps:
+      - name: Set diagnostic paths
+        run: |
+          printf 'THERMOSTAT_BASE_DIR=%s/thermostat-base\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          printf 'THERMOSTAT_EVIDENCE=%s/thermostat-evidence\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - uses: actions/checkout@v5
         with:
           ref: 7903df73a481c8a5dedcbc322b6e36e37864119e
